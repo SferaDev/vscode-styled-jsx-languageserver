@@ -143,7 +143,7 @@ export function replaceAllWithSpacesExceptCss(
             // code that is in between that CSS parts
             result += text
                 .slice(styledJsxTaggedTemplates[i].end, styledJsxTaggedTemplates[i + 1].start)
-                .replace(/./g, 'a');
+                .replace(/./g, ' ');
         }
     }
     // code that goes after CSS
