@@ -7,7 +7,7 @@
 import * as path from 'path';
 
 // vscode.d.ts from https://github.com/Microsoft/vscode/blob/master/src/vs/vscode.d.ts
-import { languages, window, commands, ExtensionContext, TextDocument, ColorInformation, ColorPresentation, Color, Range, Position, CompletionItem, CompletionItemKind, TextEdit, SnippetString } from 'vscode';
+import { languages, window, commands, ExtensionContext, ColorInformation, ColorPresentation, Color, Range, Position, CompletionItem, CompletionItemKind, TextEdit, SnippetString } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 
 import { ConfigurationFeature } from 'vscode-languageclient/lib/configuration';
@@ -57,7 +57,7 @@ export function activate(context: ExtensionContext) {
 		client.code2ProtocolConverter.asPosition(window.activeTextEditor!.selection.active);
 		// register color provider
 		context.subscriptions.push(languages.registerColorProvider(documentSelector, {
-			provideDocumentColors(document: TextDocument): Thenable<ColorInformation[]> {
+			provideDocumentColors(document): Thenable<ColorInformation[]> {
 				let params: DocumentColorParams = {
 					textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document)
 				};
@@ -69,7 +69,7 @@ export function activate(context: ExtensionContext) {
 					});
 				});
 			},
-			provideColorPresentations(color: Color, context: any): ColorPresentation[] | Thenable<ColorPresentation[]> {
+			provideColorPresentations(color, context): ColorPresentation[] | Thenable<ColorPresentation[]> {
 				let params: ColorPresentationParams = {
 					textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(context.document),
 					color,
@@ -89,7 +89,7 @@ export function activate(context: ExtensionContext) {
 
 	const regionCompletionRegExpr = /^(\s*)(\/(\*\s*(#\w*)?)?)?/;
 	languages.registerCompletionItemProvider(documentSelector, {
-		provideCompletionItems(doc: any, pos: any) {
+		provideCompletionItems(doc, pos) {
 			let lineUntilPos = doc.getText(new Range(new Position(pos.line, 0), pos));
 			let match = lineUntilPos.match(regionCompletionRegExpr);
 			if (match) {
