@@ -2,8 +2,6 @@ import * as ts from 'typescript';
 import { TextDocument } from 'vscode-languageserver-types';
 import { Stylesheet } from 'vscode-css-languageservice';
 import { LanguageModelCache } from './language-model-cache';
-// import * as util from 'util';
-// import * as parser from '@typescript-eslint/parser';
 
 export interface StyledJsxTaggedTemplate {
     start: number;
