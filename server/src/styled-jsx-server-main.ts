@@ -269,16 +269,13 @@ connection.onCodeAction(codeActionParams => {
     return null;
 });
 
-            import * as util from 'util';
 connection.onRequest(DocumentColorRequest.type, params => {
     let document = documents.get(params.textDocument.uri);
     if (document) {
         const styledJsx = getStyledJsx(document, stylesheets);
         if (styledJsx) {
             const { cssDocument, stylesheet } = styledJsx;
-            const colors = cssLanguageService.findDocumentColors(cssDocument, stylesheet);
-            console.log(util.inspect(colors));
-            return colors;
+            return cssLanguageService.findDocumentColors(cssDocument, stylesheet);
         }
     }
     return [];

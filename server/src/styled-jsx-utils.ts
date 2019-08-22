@@ -111,7 +111,6 @@ export function findStyledJsxTaggedTemplate(
 
         if (templateNode) {
             if (isStyledJsxTaggedTemplate(templateNode) || isStyledJsxTemplate(templateNode)) {
-                // console.log(templateNode.getFullText().slice(1, -1));
                 templates.push({ start: templateNode.getStart() + 1, end: templateNode.getEnd() - 1 });
             }
         }
@@ -120,7 +119,6 @@ export function findStyledJsxTaggedTemplate(
     return templates;
 }
 
-// const expressionPattern = /(.*\${.*}.*)|(.*(&&|[||]).*)/g;
 const expressionPattern = /(\${.*})|(&&|\|\|)/g;
 // I guess so long functions are bad. Don't know how to properly format in typescript.
 export function replaceAllWithSpacesExceptCss(
@@ -140,7 +138,6 @@ export function replaceAllWithSpacesExceptCss(
         result += text
             .slice(styledJsxTaggedTemplates[i].start, styledJsxTaggedTemplates[i].end)
             .replace(expressionPattern, (str, p1) => {
-                console.log(str, p1);
                 return p1.replace(/./g, 'a');
             });
         // if there is several CSS parts
@@ -165,8 +162,6 @@ export function replaceAllWithSpacesExceptCss(
     };
 }
 
-import * as util from 'util';
-
 export function getStyledJsx(
     document: TextDocument,
     stylesheets: LanguageModelCache<Stylesheet>
@@ -174,7 +169,6 @@ export function getStyledJsx(
     const styledJsxOffsets = getApproximateStyledJsxOffsets(document);
     if (styledJsxOffsets.length > 0) {
         const styledJsxTaggedTemplates = findStyledJsxTaggedTemplate(document, styledJsxOffsets);
-        console.log(util.inspect(styledJsxTaggedTemplates));
         if (styledJsxTaggedTemplates.length > 0) {
             return replaceAllWithSpacesExceptCss(document, styledJsxTaggedTemplates, stylesheets);
         }
