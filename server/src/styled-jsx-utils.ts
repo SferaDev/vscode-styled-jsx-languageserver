@@ -19,7 +19,7 @@ export interface StyledJsx {
 	stylesheet: Stylesheet;
 }
 
-const styledJsxPattern = /((<\s*?style\s*?(global)?\s*?jsx\s*?(global)?\s*?>)|(\s*?css\s*?`))/g;
+const styledJsxPattern = /((<\s*?style\s*?(global)?\s*?jsx\s*?(global)?\s*?>)|(\s*?css\s*?`)|(\s*?css\.global\s*?`))/g;
 export function getApproximateStyledJsxOffsets(document: TextDocument): number[] {
 	const results = [];
 	const doc = document.getText();
@@ -31,8 +31,9 @@ export function getApproximateStyledJsxOffsets(document: TextDocument): number[]
 
 // css`button { position: relative; }`
 export function isStyledJsxTaggedTemplate(token: any): boolean {
-	if (token.kind === ts.SyntaxKind.TaggedTemplateExpression) {
-		if (token.tag.getText() === 'css') {
+	if (token && token.kind === ts.SyntaxKind.TaggedTemplateExpression) {
+		const tagText = token.tag.getText()
+		if (tagText === 'css' || tagText === 'css.global') {
 			return true;
 		}
 	}
@@ -54,7 +55,7 @@ function getStyleTagAttributeNames(openingElement: ts.JsxOpeningElement): Styled
 
 // Is <style jsx/>. Maybe there is a better name for function
 export function isStyledJsxTag(token: ts.Node) {
-	if (token.kind === ts.SyntaxKind.JsxElement) {
+	if (token && token.kind === ts.SyntaxKind.JsxElement) {
 		const openingElement: ts.JsxOpeningElement = (token as ts.JsxElement).openingElement;
 		const closingElement: ts.JsxClosingElement = (token as ts.JsxElement).closingElement;
 		// Check that opening and closing tags are 'style'
@@ -67,10 +68,11 @@ export function isStyledJsxTag(token: ts.Node) {
 					// old jsx whitespace bug, propably a {` on the next line
 					return true;
 				}
+				// Check if there is a '{'
 				if (nextToken && nextToken.kind === ts.SyntaxKind.FirstPunctuation) {
 					const anotherNextToken = (ts as any).findNextToken(nextToken, nextToken.parent);
 					// Check if there is a beginning of the template string. This is neccessary to skip things like <style jsx>{styles}</style>
-					if (anotherNextToken.kind === ts.SyntaxKind.FirstTemplateToken || anotherNextToken.kind === ts.SyntaxKind.TemplateHead) {
+					if (anotherNextToken && anotherNextToken.kind === ts.SyntaxKind.FirstTemplateToken || anotherNextToken.kind === ts.SyntaxKind.TemplateHead) {
 						return true;
 					}
 				}
