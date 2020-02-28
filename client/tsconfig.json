@@ -1,19 +1,12 @@
 {
-	"compilerOptions": {
-		"target": "es5",
-		"module": "commonjs",
-		"outDir": "./out",
-		"noUnusedLocals": true,
-		"lib": [
-			"es5", "es6"
-		],
-		"strict": true
-	},
-	"include": [
-		"src/**/*"
-	],
-	"exclude": [
-		"node_modules",
-		".vscode-test"
-	]
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "outDir": "./out",
+    "noUnusedLocals": true,
+    "lib": ["es5", "es6"],
+    "strict": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", ".vscode-test"]
 }
