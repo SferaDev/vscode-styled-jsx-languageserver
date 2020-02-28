@@ -24,7 +24,9 @@
     "bugs": {
         "url": "https://github.com/Grimones/vscode-styled-jsx-languageserver/issues"
     },
-    "categories": [],
+    "categories": [
+        "Linters"
+    ],
     "activationEvents": [
         "onLanguage:javascriptreact",
         "onLanguage:javascript",
@@ -49,6 +51,7 @@
     },
     "devDependencies": {
         "@types/node": "^12.12.17",
+        "@typescript-eslint/parser": "^2.0.0",
         "typescript": "^3.7.3",
         "vscode": "^1.1.36"
     }

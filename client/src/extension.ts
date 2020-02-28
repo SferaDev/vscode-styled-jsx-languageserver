@@ -7,17 +7,36 @@
 import * as path from 'path';
 
 // vscode.d.ts from https://github.com/Microsoft/vscode/blob/master/src/vs/vscode.d.ts
-import { languages, window, commands, ExtensionContext, Range, Position, CompletionItem, CompletionItemKind, TextEdit, SnippetString } from 'vscode';
+import {
+    languages,
+    window,
+    commands,
+    ExtensionContext,
+    ColorInformation,
+    ColorPresentation,
+    Color,
+    Range,
+    Position,
+    CompletionItem,
+    CompletionItemKind,
+    TextEdit,
+    SnippetString
+} from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 
 import { ConfigurationFeature } from 'vscode-languageclient/lib/configuration';
+import {
+    DocumentColorRequest,
+    DocumentColorParams,
+    ColorPresentationRequest,
+    ColorPresentationParams
+} from 'vscode-languageserver-protocol';
 
 import * as nls from 'vscode-nls';
 let localize = nls.loadMessageBundle();
 
 // this method is called when vs code is activated
 export function activate(context: ExtensionContext) {
-
     // The server is implemented in node
     let serverModule = context.asAbsolutePath(path.join('server', 'out', 'styled-jsx-server-main.js'));
     // The debug options for the server
@@ -36,10 +55,9 @@ export function activate(context: ExtensionContext) {
     let clientOptions: LanguageClientOptions = {
         documentSelector,
         synchronize: {
-            configurationSection: 'css',
+            configurationSection: 'css'
         },
-        initializationOptions: {
-        }
+        initializationOptions: {}
     };
 
     // Create the language client and start the client.
@@ -51,20 +69,59 @@ export function activate(context: ExtensionContext) {
     // client can be deactivated on extension deactivation
     context.subscriptions.push(disposable);
 
-
     client.onReady().then(_ => {
         client.code2ProtocolConverter.asPosition(window.activeTextEditor!.selection.active);
+        // register color provider
+        context.subscriptions.push(
+            languages.registerColorProvider(documentSelector, {
+                provideDocumentColors(document): Thenable<ColorInformation[]> {
+                    let params: DocumentColorParams = {
+                        textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(document)
+                    };
+                    return client.sendRequest(DocumentColorRequest.type, params).then(symbols => {
+                        return symbols.map(symbol => {
+                            let range = client.protocol2CodeConverter.asRange(symbol.range);
+                            let color = new Color(
+                                symbol.color.red,
+                                symbol.color.green,
+                                symbol.color.blue,
+                                symbol.color.alpha
+                            );
+                            return new ColorInformation(range, color);
+                        });
+                    });
+                },
+                provideColorPresentations(color, context): ColorPresentation[] | Thenable<ColorPresentation[]> {
+                    let params: ColorPresentationParams = {
+                        textDocument: client.code2ProtocolConverter.asTextDocumentIdentifier(context.document),
+                        color,
+                        range: client.code2ProtocolConverter.asRange(context.range)
+                    };
+                    return client.sendRequest(ColorPresentationRequest.type, params).then(presentations => {
+                        return presentations.map(p => {
+                            let presentation = new ColorPresentation(p.label);
+                            presentation.textEdit = p.textEdit && client.protocol2CodeConverter.asTextEdit(p.textEdit);
+                            presentation.additionalTextEdits =
+                                p.additionalTextEdits &&
+                                client.protocol2CodeConverter.asTextEdits(p.additionalTextEdits);
+                            return presentation;
+                        });
+                    });
+                }
+            })
+        );
     });
 
     const regionCompletionRegExpr = /^(\s*)(\/(\*\s*(#\w*)?)?)?/;
     languages.registerCompletionItemProvider(documentSelector, {
-        provideCompletionItems(doc: any, pos: any) {
+        provideCompletionItems(doc, pos) {
             let lineUntilPos = doc.getText(new Range(new Position(pos.line, 0), pos));
             let match = lineUntilPos.match(regionCompletionRegExpr);
             if (match) {
                 let range = new Range(new Position(pos.line, match[1].length), pos);
                 let beginProposal = new CompletionItem('#region', CompletionItemKind.Snippet);
-                beginProposal.range = range; TextEdit.replace(range, '/* #region */');
+                beginProposal.range = range;
+                TextEdit.replace(range, '/* #region */');
                 beginProposal.insertText = new SnippetString('/* #region $1*/');
                 beginProposal.documentation = localize('folding.start', 'Folding Region Start');
                 beginProposal.filterText = match[2];
@@ -81,7 +138,6 @@ export function activate(context: ExtensionContext) {
         }
     });
 
-
     commands.registerCommand('styled.jsx.applyCodeAction', applyCodeAction);
     // FIXME: don't know how to correctly test this
     function applyCodeAction(uri: string, documentVersion: number, edits: TextEdit[]) {
@@ -90,16 +146,19 @@ export function activate(context: ExtensionContext) {
             if (textEditor.document.version !== documentVersion) {
                 window.showInformationMessage(`CSS fix is outdated and can't be applied to the document.`);
             }
-            textEditor.edit(mutator => {
-                for (let edit of edits) {
-                    mutator.replace(client.protocol2CodeConverter.asRange(edit.range), edit.newText);
-                }
-            }).then(success => {
-                if (!success) {
-                    window.showErrorMessage('Failed to apply CSS fix to the document. Please consider opening an issue with steps to reproduce.');
-                }
-            });
+            textEditor
+                .edit(mutator => {
+                    for (let edit of edits) {
+                        mutator.replace(client.protocol2CodeConverter.asRange(edit.range), edit.newText);
+                    }
+                })
+                .then(success => {
+                    if (!success) {
+                        window.showErrorMessage(
+                            'Failed to apply CSS fix to the document. Please consider opening an issue with steps to reproduce.'
+                        );
+                    }
+                });
         }
     }
 }
-

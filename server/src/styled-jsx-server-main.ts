@@ -5,19 +5,27 @@
 'use strict';
 
 import {
-    createConnection, IConnection, TextDocuments, InitializeParams, InitializeResult, ServerCapabilities
+    createConnection,
+    IConnection,
+    TextDocuments,
+    InitializeParams,
+    InitializeResult,
+    ServerCapabilities
 } from 'vscode-languageserver';
 
 import { TextDocument } from 'vscode-languageserver-types';
 
-import { ConfigurationRequest } from 'vscode-languageserver-protocol/lib/protocol.configuration';
-import { DocumentColorRequest, ColorServerCapabilities as CPServerCapabilities, ColorPresentationRequest } from 'vscode-languageserver-protocol/lib/protocol.colorProvider';
+import { ConfigurationRequest } from 'vscode-languageserver-protocol';
+import {
+    DocumentColorRequest,
+    ServerCapabilities as CPServerCapabilities,
+    ColorPresentationRequest
+} from 'vscode-languageserver-protocol';
 
 import { getSCSSLanguageService, LanguageSettings, Stylesheet } from 'vscode-css-languageservice';
 import { getLanguageModelCache } from './language-model-cache';
 
-import { getStyledJsx, getStyledJsxUnderCursor } from './styled-jsx-utils'
-
+import { getStyledJsx, getStyledJsxUnderCursor } from './styled-jsx-utils';
 
 // Create a connection for the server.
 let connection: IConnection = createConnection();
@@ -43,32 +51,35 @@ connection.onShutdown(() => {
 let scopedSettingsSupport = false;
 // After the server has started the client sends an initilize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities.
-connection.onInitialize((params: InitializeParams): InitializeResult => {
-    function hasClientCapability(name: string) {
-        let keys = name.split('.');
-        let c: any = params.capabilities;
-        for (let i = 0; c && i < keys.length; i++) {
-            c = c[keys[i]];
+connection.onInitialize(
+    (params: InitializeParams): InitializeResult => {
+        function hasClientCapability(name: string) {
+            let c: any = params.capabilities;
+
+            for (const key of name.split('.')) {
+                c = c[key];
+            }
+
+            return !!c;
         }
-        return !!c;
+        let snippetSupport = hasClientCapability('textDocument.completion.completionItem.snippetSupport');
+        scopedSettingsSupport = hasClientCapability('workspace.configuration');
+        let capabilities: ServerCapabilities & CPServerCapabilities = {
+            // Tell the client that the server works in FULL text document sync mode
+            textDocumentSync: documents.syncKind,
+            completionProvider: snippetSupport ? { resolveProvider: false } : undefined,
+            hoverProvider: true,
+            documentSymbolProvider: true,
+            referencesProvider: true,
+            definitionProvider: true,
+            documentHighlightProvider: true,
+            codeActionProvider: true,
+            renameProvider: false,
+            colorProvider: true
+        };
+        return { capabilities };
     }
-    let snippetSupport = hasClientCapability('textDocument.completion.completionItem.snippetSupport');
-    scopedSettingsSupport = hasClientCapability('workspace.configuration');
-    let capabilities: ServerCapabilities & CPServerCapabilities = {
-        // Tell the client that the server works in FULL text document sync mode
-        textDocumentSync: documents.syncKind,
-        completionProvider: snippetSupport ? { resolveProvider: false } : undefined,
-        hoverProvider: true,
-        documentSymbolProvider: true,
-        referencesProvider: true,
-        definitionProvider: true,
-        documentHighlightProvider: true,
-        codeActionProvider: true,
-        renameProvider: false,
-        colorProvider: true
-    };
-    return { capabilities };
-});
+);
 
 const cssLanguageService = getSCSSLanguageService();
 
@@ -96,7 +107,7 @@ connection.onDidChangeConfiguration(change => {
 });
 
 function updateConfiguration(settings: LanguageSettings) {
-    cssLanguageService.configure(settings)
+    cssLanguageService.configure(settings);
     // reset all document settings
     documentSettings = {};
     // Revalidate any open text documents
@@ -146,8 +157,7 @@ function validateTextDocument(document: TextDocument): void {
             const { cssDocument, stylesheet } = styledJsx;
             let diagnostics = cssLanguageService.doValidation(cssDocument, stylesheet, settings);
             connection.sendDiagnostics({ uri: document.uri, diagnostics });
-        }
-        else {
+        } else {
             clearDiagnostics(document);
         }
     });
@@ -155,7 +165,9 @@ function validateTextDocument(document: TextDocument): void {
 
 connection.onCompletion(textDocumentPosition => {
     const document = documents.get(textDocumentPosition.textDocument.uri);
-    if (!document) return null;
+    if (!document) {
+        return null;
+    }
 
     const cursorOffset = document.offsetAt(textDocumentPosition.position);
 
@@ -163,26 +175,30 @@ connection.onCompletion(textDocumentPosition => {
 
     if (styledJsx) {
         const { cssDocument, stylesheet } = styledJsx;
-        return cssLanguageService.doComplete(cssDocument, textDocumentPosition.position, stylesheet)
+        return cssLanguageService.doComplete(cssDocument, textDocumentPosition.position, stylesheet);
     }
     return null;
 });
 
 connection.onHover(textDocumentPosition => {
     let document = documents.get(textDocumentPosition.textDocument.uri);
-    if (!document) return null;
+    if (!document) {
+        return null;
+    }
 
     const styledJsx = getStyledJsx(document, stylesheets);
     if (styledJsx) {
         const { cssDocument, stylesheet } = styledJsx;
-        return cssLanguageService.doHover(cssDocument, textDocumentPosition.position, stylesheet)
+        return cssLanguageService.doHover(cssDocument, textDocumentPosition.position, stylesheet);
     }
     return null;
 });
 
 connection.onDocumentSymbol(documentSymbolParams => {
     let document = documents.get(documentSymbolParams.textDocument.uri);
-    if (!document) return null;
+    if (!document) {
+        return null;
+    }
 
     const styledJsx = getStyledJsx(document, stylesheets);
     if (styledJsx) {
@@ -194,7 +210,9 @@ connection.onDocumentSymbol(documentSymbolParams => {
 
 connection.onDefinition(documentSymbolParams => {
     let document = documents.get(documentSymbolParams.textDocument.uri);
-    if (!document) return null;
+    if (!document) {
+        return null;
+    }
 
     const styledJsx = getStyledJsx(document, stylesheets);
     if (styledJsx) {
@@ -206,7 +224,9 @@ connection.onDefinition(documentSymbolParams => {
 
 connection.onDocumentHighlight(documentSymbolParams => {
     let document = documents.get(documentSymbolParams.textDocument.uri);
-    if (!document) return null;
+    if (!document) {
+        return null;
+    }
 
     const styledJsx = getStyledJsx(document, stylesheets);
     if (styledJsx) {
@@ -218,7 +238,9 @@ connection.onDocumentHighlight(documentSymbolParams => {
 
 connection.onReferences(referenceParams => {
     let document = documents.get(referenceParams.textDocument.uri);
-    if (!document) return null;
+    if (!document) {
+        return null;
+    }
 
     const styledJsx = getStyledJsx(document, stylesheets);
     if (styledJsx) {
@@ -230,12 +252,19 @@ connection.onReferences(referenceParams => {
 
 connection.onCodeAction(codeActionParams => {
     let document = documents.get(codeActionParams.textDocument.uri);
-    if (!document) return null;
+    if (!document) {
+        return null;
+    }
 
     const styledJsx = getStyledJsx(document, stylesheets);
     if (styledJsx) {
         const { cssDocument, stylesheet } = styledJsx;
-        return cssLanguageService.doCodeActions(cssDocument, codeActionParams.range, codeActionParams.context, stylesheet);
+        return cssLanguageService.doCodeActions(
+            cssDocument,
+            codeActionParams.range,
+            codeActionParams.context,
+            stylesheet
+        );
     }
     return null;
 });
@@ -266,12 +295,19 @@ connection.onRequest(ColorPresentationRequest.type, params => {
 
 connection.onRenameRequest(renameParameters => {
     let document = documents.get(renameParameters.textDocument.uri);
-    if (!document) return null;
+    if (!document) {
+        return null;
+    }
 
     const styledJsx = getStyledJsx(document, stylesheets);
     if (styledJsx) {
         const { cssDocument, stylesheet } = styledJsx;
-        return cssLanguageService.doRename(cssDocument, renameParameters.position, renameParameters.newName, stylesheet);
+        return cssLanguageService.doRename(
+            cssDocument,
+            renameParameters.position,
+            renameParameters.newName,
+            stylesheet
+        );
     }
     return null;
 });
