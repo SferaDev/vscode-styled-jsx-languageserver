@@ -1,6 +1,7 @@
 # styled-jsx Language Server
 
-Language server for [styled-jsx](https://github.com/zeit/styled-jsx).
+Language server for [styled-jsx](https://github.com/zeit/styled-jsx). Install it
+from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=Southclaws.vscode-styled-jsx-languageserver)
 
 Forked from [this project](https://github.com/Grimones/vscode-styled-jsx-languageserver).
 
@@ -17,7 +18,7 @@ detected by language server.
 Consider this component:
 
 ```jsx
-const Button = props => (
+const Button = (props) => (
   <button>
     {props.children}
     <style jsx>{`
