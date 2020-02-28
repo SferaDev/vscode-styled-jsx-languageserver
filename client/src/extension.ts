@@ -18,88 +18,88 @@ let localize = nls.loadMessageBundle();
 // this method is called when vs code is activated
 export function activate(context: ExtensionContext) {
 
-	// The server is implemented in node
-	let serverModule = context.asAbsolutePath(path.join('server', 'out', 'styled-jsx-server-main.js'));
-	// The debug options for the server
-	let debugOptions = { execArgv: ['--nolazy', '--inspect=6004'] };
+    // The server is implemented in node
+    let serverModule = context.asAbsolutePath(path.join('server', 'out', 'styled-jsx-server-main.js'));
+    // The debug options for the server
+    let debugOptions = { execArgv: ['--nolazy', '--inspect=6004'] };
 
-	// If the extension is launch in debug mode the debug server options are use
-	// Otherwise the run options are used
-	let serverOptions: ServerOptions = {
-		run: { module: serverModule, transport: TransportKind.ipc },
-		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
-	};
+    // If the extension is launch in debug mode the debug server options are use
+    // Otherwise the run options are used
+    let serverOptions: ServerOptions = {
+        run: { module: serverModule, transport: TransportKind.ipc },
+        debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
+    };
 
-	let documentSelector = ['javascriptreact', 'javascript', 'typescriptreact', 'typescript'];
+    let documentSelector = ['javascriptreact', 'javascript', 'typescriptreact', 'typescript'];
 
-	// Options to control the language client
-	let clientOptions: LanguageClientOptions = {
-		documentSelector,
-		synchronize: {
-			configurationSection: 'css',
-		},
-		initializationOptions: {
-		}
-	};
+    // Options to control the language client
+    let clientOptions: LanguageClientOptions = {
+        documentSelector,
+        synchronize: {
+            configurationSection: 'css',
+        },
+        initializationOptions: {
+        }
+    };
 
-	// Create the language client and start the client.
-	let client = new LanguageClient('styled.jsx', 'styled-jsx Language Server', serverOptions, clientOptions);
-	client.registerFeature(new ConfigurationFeature(client));
+    // Create the language client and start the client.
+    let client = new LanguageClient('styled.jsx', 'styled-jsx Language Server', serverOptions, clientOptions);
+    client.registerFeature(new ConfigurationFeature(client));
 
-	let disposable = client.start();
-	// Push the disposable to the context's subscriptions so that the
-	// client can be deactivated on extension deactivation
-	context.subscriptions.push(disposable);
-
-
-	client.onReady().then(_ => {
-		client.code2ProtocolConverter.asPosition(window.activeTextEditor!.selection.active);
-	});
-
-	const regionCompletionRegExpr = /^(\s*)(\/(\*\s*(#\w*)?)?)?/;
-	languages.registerCompletionItemProvider(documentSelector, {
-		provideCompletionItems(doc: any, pos: any) {
-			let lineUntilPos = doc.getText(new Range(new Position(pos.line, 0), pos));
-			let match = lineUntilPos.match(regionCompletionRegExpr);
-			if (match) {
-				let range = new Range(new Position(pos.line, match[1].length), pos);
-				let beginProposal = new CompletionItem('#region', CompletionItemKind.Snippet);
-				beginProposal.range = range; TextEdit.replace(range, '/* #region */');
-				beginProposal.insertText = new SnippetString('/* #region $1*/');
-				beginProposal.documentation = localize('folding.start', 'Folding Region Start');
-				beginProposal.filterText = match[2];
-				beginProposal.sortText = 'za';
-				let endProposal = new CompletionItem('#endregion', CompletionItemKind.Snippet);
-				endProposal.range = range;
-				endProposal.insertText = '/* #endregion */';
-				endProposal.documentation = localize('folding.end', 'Folding Region End');
-				endProposal.sortText = 'zb';
-				endProposal.filterText = match[2];
-				return [beginProposal, endProposal];
-			}
-			return null;
-		}
-	});
+    let disposable = client.start();
+    // Push the disposable to the context's subscriptions so that the
+    // client can be deactivated on extension deactivation
+    context.subscriptions.push(disposable);
 
 
-	commands.registerCommand('styled.jsx.applyCodeAction', applyCodeAction);
-	// FIXME: don't know how to correctly test this
-	function applyCodeAction(uri: string, documentVersion: number, edits: TextEdit[]) {
-		let textEditor = window.activeTextEditor;
-		if (textEditor && textEditor.document.uri.toString() === uri) {
-			if (textEditor.document.version !== documentVersion) {
-				window.showInformationMessage(`CSS fix is outdated and can't be applied to the document.`);
-			}
-			textEditor.edit(mutator => {
-				for (let edit of edits) {
-					mutator.replace(client.protocol2CodeConverter.asRange(edit.range), edit.newText);
-				}
-			}).then(success => {
-				if (!success) {
-					window.showErrorMessage('Failed to apply CSS fix to the document. Please consider opening an issue with steps to reproduce.');
-				}
-			});
-		}
-	}
+    client.onReady().then(_ => {
+        client.code2ProtocolConverter.asPosition(window.activeTextEditor!.selection.active);
+    });
+
+    const regionCompletionRegExpr = /^(\s*)(\/(\*\s*(#\w*)?)?)?/;
+    languages.registerCompletionItemProvider(documentSelector, {
+        provideCompletionItems(doc: any, pos: any) {
+            let lineUntilPos = doc.getText(new Range(new Position(pos.line, 0), pos));
+            let match = lineUntilPos.match(regionCompletionRegExpr);
+            if (match) {
+                let range = new Range(new Position(pos.line, match[1].length), pos);
+                let beginProposal = new CompletionItem('#region', CompletionItemKind.Snippet);
+                beginProposal.range = range; TextEdit.replace(range, '/* #region */');
+                beginProposal.insertText = new SnippetString('/* #region $1*/');
+                beginProposal.documentation = localize('folding.start', 'Folding Region Start');
+                beginProposal.filterText = match[2];
+                beginProposal.sortText = 'za';
+                let endProposal = new CompletionItem('#endregion', CompletionItemKind.Snippet);
+                endProposal.range = range;
+                endProposal.insertText = '/* #endregion */';
+                endProposal.documentation = localize('folding.end', 'Folding Region End');
+                endProposal.sortText = 'zb';
+                endProposal.filterText = match[2];
+                return [beginProposal, endProposal];
+            }
+            return null;
+        }
+    });
+
+
+    commands.registerCommand('styled.jsx.applyCodeAction', applyCodeAction);
+    // FIXME: don't know how to correctly test this
+    function applyCodeAction(uri: string, documentVersion: number, edits: TextEdit[]) {
+        let textEditor = window.activeTextEditor;
+        if (textEditor && textEditor.document.uri.toString() === uri) {
+            if (textEditor.document.version !== documentVersion) {
+                window.showInformationMessage(`CSS fix is outdated and can't be applied to the document.`);
+            }
+            textEditor.edit(mutator => {
+                for (let edit of edits) {
+                    mutator.replace(client.protocol2CodeConverter.asRange(edit.range), edit.newText);
+                }
+            }).then(success => {
+                if (!success) {
+                    window.showErrorMessage('Failed to apply CSS fix to the document. Please consider opening an issue with steps to reproduce.');
+                }
+            });
+        }
+    }
 }
 
