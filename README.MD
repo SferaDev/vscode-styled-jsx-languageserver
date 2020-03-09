@@ -3,7 +3,8 @@
 Language server for [styled-jsx](https://github.com/zeit/styled-jsx). Install it
 from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=Southclaws.vscode-styled-jsx-languageserver)
 
-Forked from [this project](https://github.com/Grimones/vscode-styled-jsx-languageserver).
+Forked from [this project](https://github.com/Grimones/vscode-styled-jsx-languageserver)
+and merged all outstanding pull requests.
 
 ## Prerequisites
 
@@ -95,7 +96,7 @@ It should provide all the features that simply opening a `.css` file would:
 
   ![quick-fixes](https://thumbs.gfycat.com/RelievedHarmoniousIberiannase-size_restricted.gif)
 
-- Multiply `<style jsx/>` tags in file
+- Multiple `<style jsx/>` tags in file
 
   ![multiply-tags](https://i.imgur.com/n7VzljO.png)
 
