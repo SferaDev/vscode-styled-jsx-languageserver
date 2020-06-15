@@ -1,5 +1,7 @@
+/* eslint-disable indent */
+/* eslint-disable no-unused-vars */
 import * as ts from "typescript";
-import { TextDocument } from "vscode-languageserver-types";
+import { TextDocument } from "vscode-languageserver";
 import { Stylesheet } from "vscode-css-languageservice";
 import { LanguageModelCache } from "./language-model-cache";
 
@@ -14,9 +16,7 @@ export interface StyledJsx {
 }
 
 const styledJsxPattern = /((<\s*?style\s*?(global)?\s*?jsx\s*?(global)?\s*?>)|(\s*?css\s*?`)|(\s*?css\.global\s*?`))/g;
-export function getApproximateStyledJsxOffsets(
-  document: TextDocument
-): number[] {
+export function getApproximateStyledJsxOffsets(document: TextDocument): number[] {
   const results = [];
   const doc = document.getText();
   while (styledJsxPattern.exec(doc)) {
@@ -25,7 +25,9 @@ export function getApproximateStyledJsxOffsets(
   return results;
 }
 
-function getTemplateString(node: ts.Node) {
+function getTemplateString(
+  node: ts.Node
+): ts.TemplateExpression | ts.NoSubstitutionTemplateLiteral | undefined {
   if (ts.isTemplateHead(node) || ts.isTemplateLiteral(node)) {
     if (ts.isTemplateHead(node)) {
       return node.parent;
@@ -52,7 +54,7 @@ export function isStyledJsxTaggedTemplate(
   return false;
 }
 
-function walk(node: ts.Node, callback: (node: ts.Node) => void) {
+function walk(node: ts.Node, callback: (node: ts.Node) => void): void {
   if (
     ts.isJSDoc(node) ||
     node.kind === ts.SyntaxKind.MultiLineCommentTrivia ||
@@ -64,11 +66,16 @@ function walk(node: ts.Node, callback: (node: ts.Node) => void) {
   if (ts.isToken(node) && node.kind !== ts.SyntaxKind.EndOfFileToken) {
     callback(node);
   } else {
-    node.getChildren().forEach((child) => walk(child, callback));
+    try {
+      node.forEachChild((child) => walk(child, callback));
+    } catch (e) {
+      // An error might be thrown if the scriptKind is not known
+      console.log(e.stack);
+    }
   }
 }
 
-function isStyledJsxTemplate(node: ts.Node) {
+function isStyledJsxTemplate(node: ts.Node): boolean {
   if (!ts.isJsxExpression(node.parent)) {
     return false;
   }
@@ -94,31 +101,46 @@ function isStyledJsxTemplate(node: ts.Node) {
   return false;
 }
 
+function getScriptKind(document: TextDocument): ts.ScriptKind {
+  switch (document.languageId) {
+    case "typescriptreact":
+      return ts.ScriptKind.TSX;
+    case "typescript":
+      return ts.ScriptKind.TS;
+    case "javascriptreact":
+      return ts.ScriptKind.JSX;
+    case "javascript":
+      return ts.ScriptKind.JS;
+    default:
+      return ts.ScriptKind.Unknown;
+  }
+}
+
 export function findStyledJsxTaggedTemplate(
   textDocument: TextDocument,
-  cursorOffsets: number[]
+  _cursorOffsets: number[]
 ): StyledJsxTaggedTemplate[] {
   const source = ts.createSourceFile(
     "tmp",
     textDocument.getText(),
     ts.ScriptTarget.Latest,
     true,
-    ts.ScriptKind.JSX | ts.ScriptKind.TSX
+    getScriptKind(textDocument)
   );
 
   const templates: StyledJsxTaggedTemplate[] = [];
 
   walk(source, (node) => {
-    const templateNode = getTemplateString(node);
+    const templateNode:
+      | ts.TemplateExpression
+      | ts.NoSubstitutionTemplateLiteral
+      | undefined = getTemplateString(node);
 
     if (templateNode) {
-      if (
-        isStyledJsxTaggedTemplate(templateNode) ||
-        isStyledJsxTemplate(templateNode)
-      ) {
+      if (isStyledJsxTaggedTemplate(templateNode) || isStyledJsxTemplate(templateNode)) {
         templates.push({
           start: templateNode.getStart() + 1,
-          end: templateNode.getEnd() - 1
+          end: templateNode.getEnd() - 1,
         });
       }
     }
@@ -127,8 +149,8 @@ export function findStyledJsxTaggedTemplate(
   return templates;
 }
 
-const expressionPattern = /(\${.*})|(&&|\|\|)/g;
-// I guess so long functions are bad. Don't know how to properly format in typescript.
+const expressionPattern: RegExp = /(\${.*})|(&&|\|\|)/g;
+
 export function replaceAllWithSpacesExceptCss(
   textDocument: TextDocument,
   styledJsxTaggedTemplates: StyledJsxTaggedTemplate[],
@@ -145,29 +167,23 @@ export function replaceAllWithSpacesExceptCss(
     // This is neccessary to preserve character count
     result += text
       .slice(styledJsxTaggedTemplates[i].start, styledJsxTaggedTemplates[i].end)
-      .replace(expressionPattern, (str, p1) => {
+      .replace(expressionPattern, (_str, p1) => {
         return p1.replace(/./g, " ");
       });
     // if there is several CSS parts
     if (i + 1 < styledJsxTaggedTemplates.length) {
       // code that is in between that CSS parts
       result += text
-        .slice(
-          styledJsxTaggedTemplates[i].end,
-          styledJsxTaggedTemplates[i + 1].start
-        )
+        .slice(styledJsxTaggedTemplates[i].end, styledJsxTaggedTemplates[i + 1].start)
         .replace(/./g, " ");
     }
   }
   // code that goes after CSS
   result += text
-    .slice(
-      styledJsxTaggedTemplates[styledJsxTaggedTemplates.length - 1].end,
-      text.length
-    )
+    .slice(styledJsxTaggedTemplates[styledJsxTaggedTemplates.length - 1].end, text.length)
     .replace(/./g, " ");
 
-  const cssDocument = TextDocument.create(
+  const cssDocument: TextDocument = TextDocument.create(
     textDocument.uri.toString(),
     "css",
     textDocument.version,
@@ -177,7 +193,7 @@ export function replaceAllWithSpacesExceptCss(
 
   return {
     cssDocument,
-    stylesheet
+    stylesheet,
   };
 }
 
@@ -185,18 +201,12 @@ export function getStyledJsx(
   document: TextDocument,
   stylesheets: LanguageModelCache<Stylesheet>
 ): StyledJsx | undefined {
-  const styledJsxOffsets = getApproximateStyledJsxOffsets(document);
+  const styledJsxOffsets: number[] = getApproximateStyledJsxOffsets(document);
   if (styledJsxOffsets.length > 0) {
-    const styledJsxTaggedTemplates = findStyledJsxTaggedTemplate(
-      document,
-      styledJsxOffsets
-    );
+    const styledJsxTaggedTemplates = findStyledJsxTaggedTemplate(document, styledJsxOffsets);
+
     if (styledJsxTaggedTemplates.length > 0) {
-      return replaceAllWithSpacesExceptCss(
-        document,
-        styledJsxTaggedTemplates,
-        stylesheets
-      );
+      return replaceAllWithSpacesExceptCss(document, styledJsxTaggedTemplates, stylesheets);
     }
   }
   return undefined;
@@ -207,20 +217,14 @@ export function getStyledJsxUnderCursor(
   stylesheets: LanguageModelCache<Stylesheet>,
   cursorOffset: number
 ): StyledJsx | undefined {
-  const styledJsxTaggedTemplates = findStyledJsxTaggedTemplate(document, [
-    cursorOffset
-  ]);
+  const styledJsxTaggedTemplates = findStyledJsxTaggedTemplate(document, [cursorOffset]);
 
   if (
     styledJsxTaggedTemplates.length > 0 &&
     styledJsxTaggedTemplates[0].start < cursorOffset &&
     styledJsxTaggedTemplates[0].end > cursorOffset
   ) {
-    return replaceAllWithSpacesExceptCss(
-      document,
-      styledJsxTaggedTemplates,
-      stylesheets
-    );
+    return replaceAllWithSpacesExceptCss(document, styledJsxTaggedTemplates, stylesheets);
   }
   return undefined;
 }

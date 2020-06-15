@@ -116,3 +116,7 @@ It should provide all the features that simply opening a `.css` file would:
 
 This was forked from a seemingly unmaintained repository. I merged all the
 existing pull requests and will be happy to maintain this going forward.
+
+## Todo
+
+- Fix the duplicate color previews
