@@ -2,18 +2,17 @@
   "name": "vscode-styled-jsx-languageserver",
   "displayName": "styled-jsx Language Server",
   "description": "Language server for styled-jsx",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "author": {
-    "name": "Barnaby Keene",
-    "email": "hello@southcla.ws",
-    "url": "https://southcla.ws"
+    "name": "Alexis Rico",
+    "email": "sferadev@gmail.com"
   },
   "license": "MIT",
   "galleryBanner": {
     "color": "#000000",
     "theme": "dark"
   },
-  "publisher": "Southclaws",
+  "publisher": "SferaDev",
   "engines": {
     "vscode": "^1.40.0"
   },

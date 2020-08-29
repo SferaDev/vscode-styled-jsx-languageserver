@@ -15,7 +15,7 @@ export interface StyledJsx {
   stylesheet: Stylesheet;
 }
 
-const styledJsxPattern = /((<\s*?style\s*?(global)?\s*?jsx\s*?(global)?\s*?>)|(\s*?css\s*?`)|(\s*?css\.global\s*?`))/g;
+const styledJsxPattern = /((<\s*?style\s*?(global)?\s*?jsx\s*?(global)?\s*?>)|(\s*?css\s*?`)|(\s*?css\.global\s*?`)|(\s*?css\.resolve\s*?`))/g;
 export function getApproximateStyledJsxOffsets(document: TextDocument): number[] {
   const results = [];
   const doc = document.getText();
@@ -46,7 +46,7 @@ export function isStyledJsxTaggedTemplate(
   const parent = templateNode.parent;
 
   if (ts.isTaggedTemplateExpression(parent)) {
-    if (parent.tag.getText() === "css") {
+    if (parent.tag.getText().includes("css")) {
       return true;
     }
   }
